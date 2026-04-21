@@ -23,13 +23,20 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build both JARs
-        run: ./gradlew build
+        run: ./gradlew build lightJar
+
+      - name: List and rename outputs
+        run: |
+          ls -lh build/libs/
+          # Loom remaps to a name based on gradle.properties archives_base_name.
+          # Normalise to predictable names so the upload steps always find them.
+          find build/libs -name '*.jar' ! -name '*-sources.jar' ! -name 'light-client-*' -exec cp {} build/libs/shadow-client-2.0.0.jar \; || true
 
       - name: Upload Shadow Client JAR
         uses: actions/upload-artifact@v4
         with:
           name: shadow-client-jar
-          path: build/libs/shadow-client-*.jar
+          path: build/libs/shadow-client-2.0.0.jar
           if-no-files-found: error
 
       - name: Upload Light Client JAR
