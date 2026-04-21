@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "com.davidprogr.shadowclient.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "GameRendererMixin",
+    "ClientPlayerEntityMixin",
+    "KeyboardInputMixin",
+    "WorldRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
