@@ -1,65 +1,121 @@
 plugins {
-	id 'fabric-loom' version '1.9-SNAPSHOT'
-	id 'maven-publish'
+    id 'fabric-loom' version '1.9-SNAPSHOT'
+    id 'maven-publish'
 }
 
 version = project.mod_version
 group = project.maven_group
 
-base {
-	archivesName = project.archives_base_name
-}
-
-repositories {
-}
+repositories {}
 
 dependencies {
-	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
-	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+    // Gson for config serialisation (bundled in Minecraft's runtime, but declared for IDE)
+    implementation 'com.google.code.gson:gson:2.10.1'
 }
 
+// ── Source sets ──────────────────────────────────────────────────────────────
+sourceSets {
+    main {
+        java { srcDirs = ['src/main/java'] }
+        resources { srcDirs = ['src/main/resources'] }
+    }
+    light {
+        compileClasspath += main.compileClasspath + main.output
+        runtimeClasspath += main.runtimeClasspath + main.output
+        java { srcDirs = [] }  // no extra java — reuses main
+        resources { srcDirs = ['src/light/resources'] }
+    }
+}
+
+// ── Process resources — expand ${version} in both fabric.mod.json ────────────
 processResources {
-	inputs.property "version", project.version
-	filteringCharset "UTF-8"
-
-	filesMatching("fabric.mod.json") {
-		expand "version": project.version
-	}
+    inputs.property "version", project.version
+    filteringCharset "UTF-8"
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version
+    }
 }
 
+tasks.named('processLightResources', ProcessResources) {
+    inputs.property "version", project.version
+    filteringCharset "UTF-8"
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version
+    }
+}
+
+// ── Compile settings ──────────────────────────────────────────────────────────
 def targetJavaVersion = 21
 tasks.withType(JavaCompile).configureEach {
-	it.options.encoding = "UTF-8"
-	if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
-		it.options.release = targetJavaVersion
-	}
+    it.options.encoding = "UTF-8"
+    if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
+        it.options.release = targetJavaVersion
+    }
 }
 
 java {
-	def javaVersion = JavaVersion.toVersion(targetJavaVersion)
-	if (JavaVersion.current() < javaVersion) {
-		toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
-	}
-	sourceCompatibility = javaVersion
-	targetCompatibility = javaVersion
-	withSourcesJar()
+    def javaVersion = JavaVersion.toVersion(targetJavaVersion)
+    if (JavaVersion.current() < javaVersion) {
+        toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+    }
+    sourceCompatibility = javaVersion
+    targetCompatibility = javaVersion
+    withSourcesJar()
 }
 
+// ── Shadow JAR (main build — all features) ───────────────────────────────────
 jar {
-	from("LICENSE") {
-		rename { "${it}_${project.base.archivesName.get()}" }
-	}
+    archiveBaseName = "shadow-client"
+    archiveVersion  = project.mod_version
+    archiveClassifier = ""
+    from("LICENSE") { rename { "${it}_shadow-client" } }
 }
 
+// ── Light JAR (legit-only) ───────────────────────────────────────────────────
+tasks.register('lightJar', Jar) {
+    dependsOn 'processLightResources', 'classes'
+    archiveBaseName    = "light-client"
+    archiveVersion     = project.mod_version
+    archiveClassifier  = ""
+    destinationDirectory = layout.buildDirectory.dir("libs")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    // Classes only (no resources from main output to avoid duplicates)
+    from(sourceSets.main.output.classesDirs)
+
+    // Light fabric.mod.json (overrides shadow one) — must come FIRST so EXCLUDE keeps it
+    from(layout.buildDirectory.dir("resources/light")) {
+        into ""
+    }
+
+    // The shared mixin JSON and assets from main resources
+    from(sourceSets.main.resources) {
+        include "shadowclient.mixins.json"
+        include "assets/**"
+    }
+
+    manifest {
+        attributes 'Implementation-Title': 'Light Client',
+                   'Implementation-Version': project.mod_version
+    }
+
+    from("LICENSE") { rename { "${it}_light-client" } }
+}
+
+// Make `build` produce both JARs
+build.dependsOn lightJar
+
+// ── Publishing ────────────────────────────────────────────────────────────────
 publishing {
-	publications {
-		create("mavenJava", MavenPublication) {
-			artifactId = project.archives_base_name
-			from components.java
-		}
-	}
-	repositories {
-	}
+    publications {
+        create("mavenJava", MavenPublication) {
+            artifactId = 'shadow-client'
+            from components.java
+        }
+    }
+    repositories {}
 }

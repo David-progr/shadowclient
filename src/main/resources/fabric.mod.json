@@ -3,11 +3,10 @@
   "id": "shadowclient",
   "version": "${version}",
   "name": "Shadow Client",
-  "description": "A feature-rich Fabric client mod for 1.21.4",
+  "description": "A feature-rich hack + legit Fabric client mod for 1.21.4",
   "authors": ["David-progr"],
   "contact": {},
   "license": "MIT",
-  "icon": "assets/shadowclient/icon.png",
   "environment": "client",
   "entrypoints": {
     "client": [

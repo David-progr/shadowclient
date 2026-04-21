@@ -1,4 +1,4 @@
-name: Build Shadow Client
+name: Build Shadow + Light Client
 
 on:
   push:
@@ -22,12 +22,19 @@ jobs:
       - name: Grant execute permission to gradlew
         run: chmod +x gradlew
 
-      - name: Build with Gradle
+      - name: Build both JARs
         run: ./gradlew build
 
-      - name: Upload JAR artifact
+      - name: Upload Shadow Client JAR
         uses: actions/upload-artifact@v4
         with:
-          name: shadowclient-jar
-          path: build/libs/shadowclient-*.jar
+          name: shadow-client-jar
+          path: build/libs/shadow-client-*.jar
+          if-no-files-found: error
+
+      - name: Upload Light Client JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: light-client-jar
+          path: build/libs/light-client-*.jar
           if-no-files-found: error

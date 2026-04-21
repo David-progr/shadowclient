@@ -1,61 +1,97 @@
 package com.davidprogr.shadowclient;
 
-import com.davidprogr.shadowclient.feature.FeatureManager;
+import com.davidprogr.shadowclient.config.ConfigManager;
+import com.davidprogr.shadowclient.feature.Feature;
+import com.davidprogr.shadowclient.feature.FeatureRegistry;
+import com.davidprogr.shadowclient.feature.setting.KeybindSetting;
 import com.davidprogr.shadowclient.gui.ClickGUI;
-import com.davidprogr.shadowclient.render.HUDRenderer;
-import com.davidprogr.shadowclient.render.ESPRenderer;
-
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
-
 import org.lwjgl.glfw.GLFW;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+/**
+ * Shadow Client — Hack + Legit edition.
+ * Registers ALL features (including hack-only ones).
+ */
 public class ShadowClientMod implements ClientModInitializer {
 
-    public static KeyBinding OPEN_GUI_KEY;
-    public static KeyBinding ZOOM_KEY;
+    public static final String MOD_ID = "shadowclient";
+    public static final String NAME   = "Shadow Client";
+    public static final String VERSION = "2.0.0";
+    public static final Logger LOGGER  = LoggerFactory.getLogger(MOD_ID);
+
+    // Open GUI keybind — default R
+    private static KeyBinding guiKey;
 
     @Override
     public void onInitializeClient() {
-        // Init all features
-        FeatureManager.init();
+        LOGGER.info("[{}] Initializing v{}", NAME, VERSION);
 
-        // Register keybinds
-        OPEN_GUI_KEY = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.shadowclient.opengui",
-                InputUtil.Type.KEYSYM,
-                GLFW.GLFW_KEY_RIGHT_SHIFT,
-                "key.category.shadowclient.general"
+        // Init registry with ALL features
+        FeatureRegistry.init(false);
+
+        // Load saved config
+        ConfigManager.load();
+
+        // Register GUI keybind
+        guiKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+            "key.shadowclient.gui",
+            InputUtil.Type.KEYSYM,
+            GLFW.GLFW_KEY_RIGHT_SHIFT,
+            "Shadow Client"
         ));
 
-        ZOOM_KEY = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.shadowclient.zoom",
-                InputUtil.Type.KEYSYM,
-                GLFW.GLFW_KEY_V,
-                "key.category.shadowclient.general"
-        ));
-
-        // Tick: open GUI on key press, hold zoom
+        // Tick event — runs each features onTick + checks keybinds
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            while (OPEN_GUI_KEY.wasPressed()) {
-                if (client.currentScreen == null) {
-                    client.setScreen(new ClickGUI(null));
+            if (client.player == null) return;
+
+            // Open ClickGUI
+            if (guiKey.wasPressed()) {
+                client.setScreen(new ClickGUI());
+            }
+
+            // Per-feature tick + keybind toggle
+            for (Feature feature : FeatureRegistry.get().all()) {
+                // Check toggle keybind
+                KeybindSetting kb = feature.getKeybind();
+                if (kb != null && kb.getValue() != -1) {
+                    if (InputUtil.isKeyPressed(
+                            MinecraftClient.getInstance().getWindow().getHandle(),
+                            kb.getValue())) {
+                        // Only trigger on key-press edge (not hold)
+                        // Use the KeybindSetting's wasPressed tracking
+                        if (!kb.isListening()) {
+                            kb.setListening(true);
+                            feature.toggle();
+                        }
+                    } else {
+                        kb.setListening(false);
+                    }
+                }
+
+                // Feature tick
+                if (feature.isEnabled()) {
+                    try {
+                        feature.onTick();
+                    } catch (Exception e) {
+                        LOGGER.warn("[{}] Exception in {}.onTick(): {}",
+                            NAME, feature.getName(), e.getMessage());
+                    }
                 }
             }
-            FeatureManager.ZOOM.setEnabled(ZOOM_KEY.isPressed());
         });
 
-        // HUD rendering
-        HudRenderCallback.EVENT.register((drawContext, renderTickCounter) -> {
-            HUDRenderer.render(drawContext, net.minecraft.client.MinecraftClient.getInstance());
-        });
+        // Save config on shutdown
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try { ConfigManager.save(); } catch (Exception ignored) {}
+        }));
 
-        // World / ESP rendering
-        ESPRenderer.register();
+        LOGGER.info("[{}] {} features loaded.", NAME, FeatureRegistry.get().all().size());
     }
 }

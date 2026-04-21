@@ -1,10 +1,12 @@
 package com.davidprogr.shadowclient.mixin;
 
-import com.davidprogr.shadowclient.feature.FeatureManager;
-
+import com.davidprogr.shadowclient.feature.FeatureRegistry;
+import com.davidprogr.shadowclient.feature.movement.SafeWalkFeature;
+import com.davidprogr.shadowclient.feature.movement.ToggleSprintFeature;
+import com.davidprogr.shadowclient.feature.movement.FastPlaceFeature;
+import net.minecraft.client.input.Input;
 import net.minecraft.client.input.KeyboardInput;
-import net.minecraft.util.PlayerInput;
-
+import net.minecraft.client.MinecraftClient;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -13,27 +15,41 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(KeyboardInput.class)
 public class KeyboardInputMixin {
 
-    // In 1.21.4, movement is stored in Input.playerInput (a PlayerInput record)
-    // We override it after tick() to force sprinting when moving forward
-    @Inject(method = "tick", at = @At("RETURN"))
+    @Inject(method = "tick", at = @At("TAIL"))
     private void onTick(CallbackInfo ci) {
-        if (!FeatureManager.TOGGLE_SPRINT.isEnabled()) return;
+        try {
+            MinecraftClient mc = MinecraftClient.getInstance();
+            if (mc == null || mc.player == null) return;
 
-        KeyboardInput self = (KeyboardInput)(Object)this;
-        PlayerInput pi = self.playerInput;
-        if (pi == null) return;
+            Input input = (Input)(Object)this;
+            FeatureRegistry reg = FeatureRegistry.get();
 
-        // Only apply sprint if actually moving forward
-        if (pi.forward()) {
-            self.playerInput = new PlayerInput(
-                    pi.forward(),
-                    pi.backward(),
-                    pi.left(),
-                    pi.right(),
-                    pi.jump(),
-                    true,   // sprint = true
-                    pi.sneak()
-            );
-        }
+            // ── ToggleSprint: keep sprinting if moving forward ──
+            ToggleSprintFeature ts = reg.toggleSprint;
+            if (ts != null && ts.isEnabled()) {
+                // movementForward > 0 means player is moving forward
+                if (input.movementForward > 0) {
+                    mc.player.setSprinting(true);
+                }
+            }
+
+            // ── SafeWalk: force sneaking at edges ──
+            SafeWalkFeature sw = reg.safeWalk;
+            if (sw != null && sw.isEnabled()) {
+                mc.player.setSneaking(true);
+            }
+
+            // ── FastPlace: reset item use cooldown via reflection ──
+            FastPlaceFeature fp = reg.fastPlace;
+            if (fp != null && fp.isEnabled()) {
+                try {
+                    var f = net.minecraft.entity.LivingEntity.class
+                            .getDeclaredField("itemUseTimeLeft");
+                    f.setAccessible(true);
+                    f.setInt(mc.player, 0);
+                } catch (Exception ignored) {}
+            }
+
+        } catch (Exception ignored) {}
     }
 }

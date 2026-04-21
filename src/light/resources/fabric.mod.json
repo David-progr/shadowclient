@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "lightclient",
+  "version": "${version}",
+  "name": "Light Client",
+  "description": "A legit-only Fabric client mod for 1.21.4 — no hacks",
+  "authors": ["David-progr"],
+  "contact": {},
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.davidprogr.shadowclient.LightClientMod"
+    ]
+  },
+  "mixins": [
+    "shadowclient.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "fabric-api": "*",
+    "minecraft": "~1.21.4",
+    "java": ">=21"
+  }
+}

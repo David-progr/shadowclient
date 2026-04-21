@@ -1,0 +1,14 @@
+{
+  "shadowclient.hit":      { "sounds": [{ "name": "shadowclient:default/hit",   "type": "file" }] },
+  "shadowclient.crit":     { "sounds": [{ "name": "shadowclient:default/crit",  "type": "file" }] },
+  "shadowclient.kill":     { "sounds": [{ "name": "shadowclient:default/kill",  "type": "file" }] },
+  "shadowclient.pot":      { "sounds": [{ "name": "shadowclient:default/pot",   "type": "file" }] },
+  "shadowclient.gapple":   { "sounds": [{ "name": "shadowclient:default/gapple","type": "file" }] },
+  "shadowclient.oldpvp.hit":    { "sounds": [{ "name": "shadowclient:oldpvp/hit",   "type": "file" }] },
+  "shadowclient.oldpvp.crit":   { "sounds": [{ "name": "shadowclient:oldpvp/crit",  "type": "file" }] },
+  "shadowclient.oldpvp.kill":   { "sounds": [{ "name": "shadowclient:oldpvp/kill",  "type": "file" }] },
+  "shadowclient.tap.hit":       { "sounds": [{ "name": "shadowclient:tap/hit",      "type": "file" }] },
+  "shadowclient.tap.crit":      { "sounds": [{ "name": "shadowclient:tap/crit",     "type": "file" }] },
+  "shadowclient.bass.hit":      { "sounds": [{ "name": "shadowclient:bass/hit",     "type": "file" }] },
+  "shadowclient.bass.crit":     { "sounds": [{ "name": "shadowclient:bass/crit",    "type": "file" }] }
+}
