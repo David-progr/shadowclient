@@ -13,7 +13,7 @@ public class HitmarkerFeature extends Feature {
     private int displayTimer = 0;
 
     public HitmarkerFeature() {
-        super("Hitmarker","Shows a hitmarker when you damage an entity", Category.MISC);
+        super("Hitmarker","Shows a hitmarker when you damage an entity", Category.MISC, true);
     }
 
     public void onHit() {

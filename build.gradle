@@ -84,35 +84,10 @@ tasks.register('lightJar', Jar) {
     destinationDirectory = layout.buildDirectory.dir("libs")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
-    // All compiled classes — but exclude shadow-only (hack) feature classes.
-    // This keeps the light JAR lean and free of hack bytecode.
-    from(sourceSets.main.output.classesDirs) {
-        def hackPkg = "com/davidprogr/shadowclient/feature/"
-        exclude hackPkg + "combat/AimAssistFeature*"
-        exclude hackPkg + "combat/AutoArmorFeature*"
-        exclude hackPkg + "combat/BowAimbotFeature*"
-        exclude hackPkg + "combat/ChestAuraFeature*"
-        exclude hackPkg + "combat/CriticalHitFeature*"
-        exclude hackPkg + "combat/KillAuraFeature*"
-        exclude hackPkg + "combat/ReachFeature*"
-        exclude hackPkg + "misc/NewChunksFeature*"
-        exclude hackPkg + "misc/SeedCrackerFeature*"
-        exclude hackPkg + "misc/TimerFeature*"
-        exclude hackPkg + "movement/AntiKnockbackFeature*"
-        exclude hackPkg + "movement/FlightFeature*"
-        exclude hackPkg + "movement/NoFallFeature*"
-        exclude hackPkg + "movement/SafeWalkFeature*"
-        exclude hackPkg + "movement/ScaffoldFeature*"
-        exclude hackPkg + "movement/SpeedFeature*"
-        exclude hackPkg + "movement/TreeAuraFeature*"
-        exclude hackPkg + "movement/VelocityFeature*"
-        exclude hackPkg + "visual/ESPFeature*"
-        exclude hackPkg + "visual/OreSimulatorFeature*"
-        exclude hackPkg + "visual/TracersFeature*"
-        exclude hackPkg + "visual/XRayFeature*"
-        // Also exclude the ESP/Tracers renderer — not needed in light
-        exclude "com/davidprogr/shadowclient/render/ESPRenderer*"
-    }
+    // Include ALL compiled classes — FeatureRegistry references them all at load time,
+    // so excluding any causes NoClassDefFoundError on startup.
+    // Runtime filtering (legitOnly=true) removes hack features from the active list.
+    from(sourceSets.main.output.classesDirs)
 
     // Light fabric.mod.json (overrides shadow one) — must come FIRST so EXCLUDE keeps it
     from(layout.buildDirectory.dir("resources/light")) {

@@ -65,7 +65,8 @@ public class ClickGUI extends Screen {
 
     @Override
     public void render(DrawContext ctx, int mx, int my, float delta) {
-        // Dim background
+        // DO NOT call super.render() — it applies Minecraft's blur/dirt background.
+        // We draw our own semi-transparent dim instead.
         ctx.fill(0, 0, width, height, 0xAA000000);
 
         int guiW = TAB_W + 200 + 4;
@@ -105,8 +106,7 @@ public class ClickGUI extends Screen {
             settingsPanelY = Math.min(settingsPanelY, height - 20);
             drawSettingsPanel(ctx, settingsPanelX, settingsPanelY, mx, my);
         }
-
-        super.render(ctx, mx, my, delta);
+        // NOTE: super.render() intentionally omitted — it triggers Minecraft's blur shader.
     }
 
     private void drawCategoryTabs(DrawContext ctx, int x, int y, int h, int mx, int my) {
